@@ -16,8 +16,7 @@ pipeline {
                 }
             }
             steps {
-                sh 'mvn -version'
-                sh 'echo "Stage dummy. Aqui ejecutaras los tests unitarios y lint"'
+                sh 'mvn test'
             }
         }
 
