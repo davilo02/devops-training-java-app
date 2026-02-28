@@ -4,23 +4,18 @@ def runInDocker(String image, Closure body) {
         body()
     }
 }
-
 pipeline {
     agent any
-
     environment {
         MAVEN_OPTS = '-Xmx1024m'
     }
-
     stages {
-
         stage('Info') {
             steps {
                 echo "Job: ${env.JOB_NAME}"
                 echo "Build: ${env.BUILD_NUMBER}"
             }
         }
-
         stage('Lint') {
             steps {
                 echo "Running Lint (Checkstyle only)..."
@@ -29,7 +24,6 @@ pipeline {
                 }
             }
         }
-
         stage('Test') {
             steps {
                 echo "Running unit tests..."
@@ -39,6 +33,15 @@ pipeline {
                 junit 'target/surefire-reports/*.xml'
             }
         }
-
+        stage('Build image') {
+            steps {
+                echo "Building Docker image..."
+                script {
+                    def version = sh(script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true).trim()
+                    docker.build("java-app:${env.BUILD_NUMBER}", "--build-arg VERSION=${version} -f devops/Dockerfile .")
+                    echo "Image built: java-app:${env.BUILD_NUMBER}"
+                }
+            }
+        }
     }
 }
