@@ -1,17 +1,13 @@
-// ------------------------
-// Función reutilizable
-// ------------------------
+// ---------- Función reutilizable ----------
 def runInDocker(String image, Closure body) {
     docker.image(image).inside('-u 0:0') {
         body()
     }
 }
 
-// ------------------------
-// Pipeline
-// ------------------------
 pipeline {
     agent any
+
     environment {
         MAVEN_OPTS = '-Xmx1024m'
     }
@@ -27,10 +23,9 @@ pipeline {
 
         stage('Lint') {
             steps {
-                echo "Running Lint (fast feedback)..."
+                echo "Running Lint (Checkstyle only)..."
                 runInDocker('maven:3.8.6-openjdk-11-slim') {
-                    sh 'mvn clean verify -q -B -Dcheckstyle.failOnViolation=true || true'
-                    archiveArtifacts artifacts: 'target/checkstyle-result.xml', allowEmptyArchive: true
+                    sh 'mvn checkstyle:check -q -B || true'
                 }
             }
         }
@@ -39,21 +34,11 @@ pipeline {
             steps {
                 echo "Running unit tests..."
                 runInDocker('maven:3.8.6-openjdk-11-slim') {
-                    sh 'mvn test -q -B || true'
-                    junit 'target/surefire-reports/*.xml'
+                    sh 'mvn test -q -B'
                 }
+                junit 'target/surefire-reports/*.xml'
             }
         }
 
-        stage('Package') {
-            steps {
-                echo "Building JAR..."
-                runInDocker('maven:3.8.6-openjdk-11-slim') {
-                    sh 'mvn package -q -B'
-                    archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: false
-                }
-            }
-        }
-
-    } // stages
+    }
 }
