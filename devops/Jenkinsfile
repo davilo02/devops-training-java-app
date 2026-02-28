@@ -1,11 +1,29 @@
 pipeline {
-    agent any
+    agent none
+    environment {
+        // Variables globales opcionales
+    }
 
     stages {
+
         stage('Info') {
+            agent { label 'master' }
             steps {
                 echo "Job: ${env.JOB_NAME}"
                 echo "Build: ${env.BUILD_NUMBER}"
+            }
+        }
+
+        stage('Lint') {
+            agent {
+                docker {
+                    image 'maven:3.8.6-openjdk-11-slim'
+                    args '-u 0:0' // ejecuta como root dentro del contenedor
+                }
+            }
+            steps {
+                echo "Running Lint (fast feedback)..."
+                sh 'make lint'
             }
         }
 
@@ -13,24 +31,32 @@ pipeline {
             agent {
                 docker {
                     image 'maven:3.8.6-openjdk-11-slim'
+                    args '-u 0:0'
                 }
             }
             steps {
-                sh 'mvn test'
+                echo "Running unit tests..."
+                sh 'make test'
             }
         }
 
-        stage('Build Docker') {
-            steps {
-                sh 'echo "Construir la imagen Docker (sin push)"'
-            }
-        }
+        // stage('Build Docker/CD') {
+        //     agent { docker { image 'docker:24.0.5' } }
+        //     steps {
+        //         echo "Aquí podrías agregar build o deploy"
+        //     }
+        // }
 
-        stage('CD') {
-            when { anyOf { branch 'develop'; branch 'master' } }
-            steps {
-                sh 'echo "Desplegar con Docker Compose en el agente de Jenkins"'
-            }
+    } // stages
+
+    post {
+        always {
+            echo "Pipeline finished for build ${env.BUILD_NUMBER}"
+        }
+        success {
+            echo "✅ Build SUCCESS!"
+        }
+        failure {
+            echo "❌ Build FAILED!"
         }
     }
-}
