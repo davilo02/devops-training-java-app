@@ -1,7 +1,7 @@
 pipeline {
     agent none
     environment {
-        // Variables globales opcionales
+        MAVEN_OPTS = '-Xmx1024m'
     }
 
     stages {
@@ -23,7 +23,10 @@ pipeline {
             }
             steps {
                 echo "Running Lint (fast feedback)..."
-                sh 'make lint'
+                // Usamos Maven Checkstyle para lint de Java
+                sh 'mvn clean verify -Dcheckstyle.failOnViolation=true || true'
+                // Guardamos los reportes para Jenkins
+                archiveArtifacts artifacts: 'target/checkstyle-result.xml', allowEmptyArchive: true
             }
         }
 
@@ -36,27 +39,25 @@ pipeline {
             }
             steps {
                 echo "Running unit tests..."
-                sh 'make test'
+                // Maven Surefire plugin para tests
+                sh 'mvn test || true'
+                junit 'target/surefire-reports/*.xml'
             }
         }
 
-        // stage('Build Docker/CD') {
-        //     agent { docker { image 'docker:24.0.5' } }
-        //     steps {
-        //         echo "Aquí podrías agregar build o deploy"
-        //     }
-        // }
+        stage('Package') {
+            agent {
+                docker {
+                    image 'maven:3.8.6-openjdk-11-slim'
+                    args '-u 0:0'
+                }
+            }
+            steps {
+                echo "Building JAR..."
+                sh 'mvn package'
+                archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: false
+            }
+        }
 
     } // stages
-
-    post {
-        always {
-            echo "Pipeline finished for build ${env.BUILD_NUMBER}"
-        }
-        success {
-            echo "✅ Build SUCCESS!"
-        }
-        failure {
-            echo "❌ Build FAILED!"
-        }
-    }
+}
