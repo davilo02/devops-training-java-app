@@ -1,3 +1,15 @@
+// ------------------------
+// Función reutilizable
+// ------------------------
+def runInDocker(String image, Closure body) {
+    docker.image(image).inside('-u 0:0') {
+        body()
+    }
+}
+
+// ------------------------
+// Pipeline
+// ------------------------
 pipeline {
     agent any
     environment {
@@ -7,7 +19,6 @@ pipeline {
     stages {
 
         stage('Info') {
-            agent any
             steps {
                 echo "Job: ${env.JOB_NAME}"
                 echo "Build: ${env.BUILD_NUMBER}"
@@ -15,47 +26,32 @@ pipeline {
         }
 
         stage('Lint') {
-            agent {
-                docker {
-                    image 'maven:3.8.6-openjdk-11-slim'
-                    args '-u 0:0' // ejecuta como root dentro del contenedor
-                }
-            }
             steps {
                 echo "Running Lint (fast feedback)..."
-                // Usamos Maven Checkstyle para lint de Java
-                sh 'mvn clean verify -B -q -Dcheckstyle.failOnViolation=true || true'
-                // Guardamos los reportes para Jenkins
-                archiveArtifacts artifacts: 'target/checkstyle-result.xml', allowEmptyArchive: true
+                runInDocker('maven:3.8.6-openjdk-11-slim') {
+                    sh 'mvn clean verify -q -B -Dcheckstyle.failOnViolation=true || true'
+                    archiveArtifacts artifacts: 'target/checkstyle-result.xml', allowEmptyArchive: true
+                }
             }
         }
 
         stage('Test') {
-            agent {
-                docker {
-                    image 'maven:3.8.6-openjdk-11-slim'
-                    args '-u 0:0'
-                }
-            }
             steps {
                 echo "Running unit tests..."
-                // Maven Surefire plugin para tests
-                sh 'mvn test || true'
-                junit 'target/surefire-reports/*.xml'
+                runInDocker('maven:3.8.6-openjdk-11-slim') {
+                    sh 'mvn test -q -B || true'
+                    junit 'target/surefire-reports/*.xml'
+                }
             }
         }
 
         stage('Package') {
-            agent {
-                docker {
-                    image 'maven:3.8.6-openjdk-11-slim'
-                    args '-u 0:0'
-                }
-            }
             steps {
                 echo "Building JAR..."
-                sh 'mvn package'
-                archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: false
+                runInDocker('maven:3.8.6-openjdk-11-slim') {
+                    sh 'mvn package -q -B'
+                    archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: false
+                }
             }
         }
 
