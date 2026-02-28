@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        MAVEN_OPTS = '-Xmx1024m -B -q -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
+        MAVEN_OPTS = '-Xmx1024m'
     }
 
     stages {
@@ -24,7 +24,7 @@ pipeline {
             steps {
                 echo "Running Lint (fast feedback)..."
                 // Usamos Maven Checkstyle para lint de Java
-                sh 'mvn clean verify -Dcheckstyle.failOnViolation=true || true'
+                sh 'mvn clean verify -B -q -Dcheckstyle.failOnViolation=true || true'
                 // Guardamos los reportes para Jenkins
                 archiveArtifacts artifacts: 'target/checkstyle-result.xml', allowEmptyArchive: true
             }
