@@ -46,5 +46,18 @@ pipeline {
                 }
             }
         }
+        stage('CD') {
+            steps {
+                script {
+                    try {
+                        sh 'docker compose -f docker-compose.yml up -d java_app'
+                        sleep 5
+                        sh 'curl -f http://localhost:8084/hello'
+                    } finally {
+                        sh 'docker compose -f docker-compose.yml down --volumes'
+                    }
+                }
+            }
+        }
     }
 }
