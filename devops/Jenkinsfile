@@ -51,9 +51,11 @@ pipeline {
                 script {
                     try {
                         sh 'docker compose -f docker-compose.yml up -d java_app'
+                        sh 'docker network connect devops-training-iac-devops_devops_training_net java_app'
                         sleep 5
                         sh 'curl -f http://java_app:8080/hello'
                     } finally {
+                        sh 'docker network disconnect devops-training-iac-devops_devops_training_net java_app || true'
                         sh 'docker compose -f docker-compose.yml down --volumes'
                     }
                 }

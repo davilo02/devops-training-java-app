@@ -6,9 +6,6 @@ networks:
       driver: default
       config:
         - subnet: 172.16.234.0/24
-  devops_training_net:
-    external: true
-    name: devops-training-iac-devops_devops_training_net
 volumes:
   postgresql-vol:
   sonarqube-vol:
@@ -18,8 +15,6 @@ services:
     container_name: java_app
     ports:
       - 8084:8080
-    networks:
-      - devops_training_net
   sonarqube:
     image: sonarqube:9.9.0-community
     depends_on:
