@@ -51,7 +51,7 @@ pipeline {
                 script {
                     try {
                         sh 'docker compose -f docker-compose.yml up -d java_app'
-                        sleep 5
+                        sleep 20
                         def ip = sh(script: "docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' java_app", returnStdout: true).trim()
                         sh "curl -f http://${ip}:8080/hello"
                     } finally {
