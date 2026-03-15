@@ -1,20 +1,29 @@
-// ---------- Función reutilizable ----------
+// Función reutilizable para ejecutar comandos dentro de un contenedor Docker
 def runInDocker(String image, Closure body) {
     docker.image(image).inside('-u 0:0') {
         body()
     }
 }
+
+// Pipeline principal - define el flujo CI/CD completo
 pipeline {
+    // Ejecutar en cualquier agente disponible de Jenkins
     agent any
+
+    // Variables de entorno reutilizables en todos los stages
     environment {
         MAVEN_OPTS = '-Xmx1024m'
         IMAGE_NAME  = "java-app:${BUILD_NUMBER}"
         APP_URL     = "http://localhost:8084/hello"
     }
+
+    // Parámetros configurables desde la UI de Jenkins
     parameters {
         booleanParam(name: 'RUN_CD', defaultValue: false, description: 'Ejecutar CD (solo develop/master)')
     }
+
     stages {
+        // Stage informativo: muestra datos del build y variables de entorno
         stage('Info') {
             steps {
                 echo "Job: ${env.JOB_NAME}"
@@ -23,6 +32,8 @@ pipeline {
                 sh "echo APP_URL=${APP_URL}"
             }
         }
+
+        // Stage de calidad: analiza el código con Checkstyle (no bloquea el pipeline)
         stage('Lint') {
             steps {
                 echo "Running Lint (Checkstyle only)..."
@@ -31,6 +42,8 @@ pipeline {
                 }
             }
         }
+
+        // Stage de pruebas: ejecuta tests unitarios y publica resultados JUnit
         stage('Test') {
             steps {
                 echo "Running unit tests..."
@@ -40,6 +53,8 @@ pipeline {
                 junit 'target/surefire-reports/*.xml'
             }
         }
+
+        // Stage de construcción: genera la imagen Docker con la versión del pom.xml
         stage('Build image') {
             steps {
                 echo "Building Docker image ${env.IMAGE_NAME}..."
@@ -53,6 +68,8 @@ pipeline {
                 }
             }
         }
+
+        // Stage de despliegue: solo se ejecuta en develop/master y si RUN_CD=true
         stage('CD') {
             when {
                 allOf {
@@ -60,12 +77,14 @@ pipeline {
                         branch 'develop'
                         branch 'master'
                     }
+                    // Requiere activación manual mediante parámetro
                     expression { return params.RUN_CD }
                 }
             }
             steps {
                 echo "CD habilitado por parámetro RUN_CD=${params.RUN_CD}"
                 script {
+                    // Determina el entorno según la rama: master=PRO, resto=DEV
                     env.DEPLOY_ENV = (env.BRANCH_NAME == 'master') ? 'PRO' : 'DEV'
                     echo "Deploying to ${env.DEPLOY_ENV}"
                     echo "App URL: ${env.APP_URL}"
@@ -75,6 +94,7 @@ pipeline {
                     sh "docker exec ${project}-java_app-1 curl -f http://localhost:8080/hello"
                 }
             }
+            // Hooks post-stage: limpieza y reporte de resultado del despliegue
             post {
                 always {
                     script {
@@ -96,6 +116,8 @@ pipeline {
             }
         }
     }
+
+    // Hooks post-pipeline: se ejecutan siempre al finalizar, independientemente del resultado
     post {
         always {
             echo "Pipeline finalizado para ${env.IMAGE_NAME}"
