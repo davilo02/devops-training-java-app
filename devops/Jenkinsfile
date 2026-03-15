@@ -54,14 +54,16 @@ pipeline {
                 }
             }
             steps {
-                echo "CD enabled for branch: ${env.BRANCH_NAME}"
                 script {
+                    env.DEPLOY_ENV = (env.BRANCH_NAME == 'master') ? 'PRO' : 'DEV'
+                    echo "Deploying to ${env.DEPLOY_ENV}"
+                    def project = env.DEPLOY_ENV.toLowerCase()
                     try {
-                        sh 'docker compose -f docker-compose.yml up -d java_app'
+                        sh "docker compose -p ${project} -f docker-compose.yml up -d java_app"
                         sleep 20
-                        sh "docker exec java_app curl -f http://localhost:8080/hello"
+                        sh "docker exec ${project}-java_app-1 curl -f http://localhost:8080/hello"
                     } finally {
-                        sh 'docker compose -f docker-compose.yml down --volumes'
+                        sh "docker compose -p ${project} -f docker-compose.yml down --volumes"
                     }
                 }
             }
