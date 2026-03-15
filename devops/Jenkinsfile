@@ -47,12 +47,18 @@ pipeline {
             }
         }
         stage('CD') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'master'
+                }
+            }
             steps {
+                echo "CD enabled for branch: ${env.BRANCH_NAME}"
                 script {
                     try {
                         sh 'docker compose -f docker-compose.yml up -d java_app'
                         sleep 20
-                        def ip = sh(script: "docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' java_app", returnStdout: true).trim()
                         sh "docker exec java_app curl -f http://localhost:8080/hello"
                     } finally {
                         sh 'docker compose -f docker-compose.yml down --volumes'
