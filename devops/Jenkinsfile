@@ -8,6 +8,8 @@ pipeline {
     agent any
     environment {
         MAVEN_OPTS = '-Xmx1024m'
+        IMAGE_NAME  = "java-app:${BUILD_NUMBER}"
+        APP_URL     = "http://localhost:8084/hello"
     }
     parameters {
         booleanParam(name: 'RUN_CD', defaultValue: false, description: 'Ejecutar CD (solo develop/master)')
@@ -17,6 +19,8 @@ pipeline {
             steps {
                 echo "Job: ${env.JOB_NAME}"
                 echo "Build: ${env.BUILD_NUMBER}"
+                echo "Imagen: ${env.IMAGE_NAME}"
+                sh "echo APP_URL=${APP_URL}"
             }
         }
         stage('Lint') {
@@ -38,14 +42,14 @@ pipeline {
         }
         stage('Build image') {
             steps {
-                echo "Building Docker image..."
+                echo "Building Docker image ${env.IMAGE_NAME}..."
                 script {
                     def version
                     runInDocker('maven:3.8.6-openjdk-11-slim') {
                         version = sh(script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true).trim()
                     }
-                    docker.build("java-app:${env.BUILD_NUMBER}", "--build-arg VERSION=${version} -f devops/Dockerfile .")
-                    echo "Image built: java-app:${env.BUILD_NUMBER}"
+                    docker.build("${env.IMAGE_NAME}", "--build-arg VERSION=${version} -f devops/Dockerfile .")
+                    echo "Image built: ${env.IMAGE_NAME}"
                 }
             }
         }
@@ -64,6 +68,7 @@ pipeline {
                 script {
                     env.DEPLOY_ENV = (env.BRANCH_NAME == 'master') ? 'PRO' : 'DEV'
                     echo "Deploying to ${env.DEPLOY_ENV}"
+                    echo "App URL: ${env.APP_URL}"
                     def project = env.DEPLOY_ENV.toLowerCase()
                     try {
                         sh "docker compose -p ${project} -f docker-compose.yml up -d java_app"
