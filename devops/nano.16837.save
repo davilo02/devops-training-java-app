@@ -1,0 +1,141 @@
+pipeline {
+    agent none
+    environment {
+        // Variables globales opcionales
+    }
+
+    stages {
+
+        stage('Info') {
+            agent { label 'master' }
+            steps {
+                echo "Job: ${env.JOB_NAME}"
+                echo "Build: ${env.BUILD_NUMBER}"
+            }
+        }
+
+        stage('Lint') {
+            agent {
+                docker {
+                    image 'maven:3.8.6-openjdk-11-slim'
+                    args '-u 0:0' // ejecuta como root dentro del contenedor
+                }
+            }
+            steps {
+                echo "Running Lint (fast feedback)..."
+                sh 'make lint'
+            }
+        }
+
+        stage('Test') {
+            agent {
+                docker {
+                    image 'maven:3.8.6-openjdk-11-slim'
+                    args '-u 0:0'
+                }
+            }
+            steps {
+                echo "Running unit tests..."
+                sh 'make test'
+            }
+        }
+
+        // stage('Build Docker/CD') {
+        //     agent { docker { image 'docker:24.0.5' } }
+        //     steps {
+        //         echo "Aquí podrías agregar build o deploy"
+        //     }
+        // }
+
+    } // stages
+
+    post {
+        always {
+            echo "Pipeline finished for build ${env.BUILD_NUMBER}"
+        }
+        success {
+            echo "✅ Build SUCCESS!"
+        }
+        failure {
+            echo "❌ Build FAILED!"
+        }
+    }
+}pipeline {
+    agent none
+    environment {
+        // Variables globales opcionales
+    }
+
+    stages {
+
+        stage('Info') {
+            agent { label 'master' }
+            steps {
+                echo "Job: ${env.JOB_NAME}"
+                echo "Build: ${env.BUILD_NUMBER}"
+            }
+        }
+
+        stage('Lint') {
+            agent {
+                docker {
+                    image 'maven:3.8.6-openjdk-11-slim'
+                    args '-u 0:0' // ejecuta como root dentro del contenedor
+                }
+            }
+            steps {
+                echo "Running Lint (fast feedback)..."
+                sh 'make lint'
+            }
+        }
+
+        stage('Test') {
+            agent {
+                docker {
+                    image 'maven:3.8.6-openjdk-11-slim'
+                    args '-u 0:0'
+                }
+            }
+            steps {
+                echo "Running unit tests..."
+                sh 'make test'
+            }
+        }
+
+        // stage('Build Docker/CD') {
+        //     agent { docker { image 'docker:24.0.5' } }
+        //     steps {
+        //         echo "Aquí podrías agregar build o deploy"
+        //     }
+        // }
+
+    } // stages
+
+    post {
+        always {
+            echo "Pipeline finished for build ${env.BUILD_NUMBER}"
+        }
+        success {
+            echo "✅ Build SUCCESS!"
+        }
+        failure {
+            echo "❌ Build FAILED!"
+        }
+    }
+}
++
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fjenfujnuefn3qhwrf893i
