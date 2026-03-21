@@ -84,7 +84,7 @@ jobs:
       - name: Deploy con Docker Compose
         run: |
           echo "Deploying to ${{ env.DEPLOY_ENV }}"
-          docker compose up -d java_app
+          docker compose up -d app
           sleep 10
 
       - name: Test E2E (curl)
