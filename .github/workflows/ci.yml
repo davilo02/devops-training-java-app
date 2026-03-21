@@ -28,6 +28,7 @@ jobs:
   ci:
     name: CI
     runs-on: ubuntu-latest
+    container: maven:3.8.6-openjdk-11-slim
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,27 +37,22 @@ jobs:
         run: |
           echo "Branch: ${{ github.ref_name }}"
           echo "SHA:    ${{ github.sha }}"
-          echo "OS:     ${{ runner.os }}"
-          echo "Runner: ${{ runner.name }}"
+          echo "Java:   $(java -version 2>&1 | head -1)"
+          echo "Maven:  $(mvn -version 2>&1 | head -1)"
 
-      - name: Variables de entorno
-        run: |
-          echo "IMAGE_NAME: ${{ env.IMAGE_NAME }}"
-          echo "APP_URL:    ${{ env.APP_URL }}"
+      - name: Install make
+        run: apt-get update && apt-get install -y make
 
-      - name: Inputs (workflow_dispatch)
-        run: |
-          echo "RUN_CD:     ${{ inputs.RUN_CD }}"
-          echo "DEPLOY_ENV: ${{ inputs.DEPLOY_ENV }}"
+      - name: Lint
+        run: make lint
 
-      - name: Repository variables
+      - name: Unit tests
+        run: make test
+
+      - name: Variables y secrets
         run: |
-          echo "REGISTRY_HOST:  ${{ vars.REGISTRY_HOST }}"
+          echo "IMAGE_NAME:      ${{ env.IMAGE_NAME }}"
+          echo "REGISTRY_HOST:   ${{ vars.REGISTRY_HOST }}"
           echo "ARTIFACTORY_URL: ${{ vars.ARTIFACTORY_URL }}"
-
-      - name: Secrets (enmascarados)
-        run: |
-          echo "REGISTRY_USER: ${{ secrets.REGISTRY_USER }}"
-          echo "REGISTRY_PASSWORD está configurado: ${{ secrets.REGISTRY_PASSWORD != '' }}"
-          echo "ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}"
-          echo "ARTIFACTORY_PASSWORD está configurado: ${{ secrets.ARTIFACTORY_PASSWORD != '' }}"
+          echo "RUN_CD:          ${{ inputs.RUN_CD }}"
+          echo "DEPLOY_ENV:      ${{ inputs.DEPLOY_ENV }}"
